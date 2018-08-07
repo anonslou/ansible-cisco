@@ -1,0 +1,52 @@
+---
+
+- name: Collect IOS facts
+  hosts: L2VPN-cloud
+  gather_facts: false
+  connection: local
+  serial: 40
+
+  tasks:
+
+    - name: Facts
+      ios_facts:
+        timeout: 20
+        gather_subset:
+          - interfaces
+        provider: "{{ cli }}"
+      register: ios_facts_result
+
+    - name: circle 
+      set_fact:
+        int: "{{ item }}"
+      with_items: "{{ ansible_net_interfaces }}"
+      when: >
+        'ipv4' in ansible_net_interfaces[item]
+        and ansible_net_interfaces[item]['ipv4']|length >= 1 
+        and (ansible_net_interfaces[item]['ipv4'][0]).get('address') == inventory_hostname
+
+    - name: get location
+      ios_command:
+        commands:
+          - show snmp location
+        provider: "{{ cli }}"
+      register: location
+
+    - name: save to file
+      lineinfile:
+        create: yes
+        path: ./L2VPN.csv
+        line: "{{ ansible_net_hostname }};{{ int }};{{ inventory_hostname }};{{ (ansible_net_interfaces[int]).get('macaddress') }};\
+               {{ (ansible_net_interfaces[int]).get('bandwidth') }};{{ location.stdout[0] }}"
+
+
+- name: normalize csv file
+  connection: local
+  hosts: localhost
+
+  tasks:
+
+    - name: normalize csv
+      shell: |
+        column -t -s";" L2VPN.csv | sort -k 3 > L2VPN_final.csv
+      delegate_to: localhost

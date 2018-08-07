@@ -1,0 +1,23 @@
+---
+
+- name: SNMP base setup
+  hosts: all
+  order: sorted
+  gather_facts: false
+  connection: local
+  serial: 30
+
+  tasks:
+
+  - name: SNMP settings
+    ios_config:
+      timeout: 60
+      lines:
+        - snmp-server contact {{ snmp_contact }}
+        - snmp-server location {{ snmp_location }}
+        - snmp-server community {{ snmp_community }} {{ snmp_permit }}
+        - snmp-server ifindex persist
+#        - snmp ifmib ifindex persist # need only for switches
+      save_when: modified
+      provider: "{{ cli }}"
+

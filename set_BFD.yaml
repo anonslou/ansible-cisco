@@ -1,0 +1,37 @@
+---
+
+- name: Set BFD
+  hosts: all-routers
+  gather_facts: false
+  connection: local
+  serial: 40
+
+  tasks:
+
+    - name: Facts
+      ios_facts:
+        timeout: 20
+        gather_subset:
+          - interfaces
+        provider: "{{ cli }}"
+      register: ios_facts_result
+
+    - name: find interface name by IP
+      set_fact:
+        int: "{{ item }}"
+      with_items: "{{ ansible_net_interfaces }}"
+      when: >
+        'ipv4' in ansible_net_interfaces[item]
+        and ansible_net_interfaces[item]['ipv4']|length >= 1 
+        and (ansible_net_interfaces[item]['ipv4'][0]).get('address') == inventory_hostname
+
+    - name: set BFD parameters
+      ios_config:
+        timeout: 20
+        provider: "{{ cli }}"
+        parents: interface {{ int }}
+        lines:
+          - bfd interval {{ bfd_interval }} min_rx {{ bfd_min_rx }} multiplier {{ bfd_multiplier }}
+        save_when: changed
+      when: "'{{ int }}' is not search('Vlan')" # Vlan interfaces can not use BFD...
+

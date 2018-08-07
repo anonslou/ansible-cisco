@@ -1,0 +1,54 @@
+---
+
+- name: chech OSPF fullmesh in L2VPN
+  hosts: L2VPN-cloud # replace group of hosts this and last modules!
+  gather_facts: false
+  connection: local
+  serial: 40
+
+  tasks:
+
+    - name: Facts
+      ios_facts:
+        timeout: 20
+        gather_subset:
+          - interfaces
+        provider: "{{ cli }}"
+      register: ios_facts_result
+
+    - name: find interface name by IP
+      set_fact:
+        int: "{{ item }}"
+      with_items: "{{ ansible_net_interfaces }}"
+      when: >
+        'ipv4' in ansible_net_interfaces[item]
+        and ansible_net_interfaces[item]['ipv4'] | length >= 1 
+        and (ansible_net_interfaces[item]['ipv4'][0]).get('address') == inventory_hostname
+
+    - name: get OSPF neighbor
+      ios_command:
+        timeout: 20
+        provider: "{{ cli }}"
+        commands:
+          - "show ip ospf neighbor {{ int }} | include FULL|2WAY"
+      register: ospf_neighbors
+
+    - name: ping 224.0.0.5
+      ios_command:
+        timeout: 20
+        provider: "{{ cli }}"
+        commands:
+          - "ping 224.0.0.5 size 1500 df-bit"
+      register: ospf_ping
+
+    - name: check
+      shell: echo "no multicast from {{ inventory_hostname }} to {{ item }}" >> ./l2vpn.txt
+      loop: "{{ groups['L2VPN-cloud'] | difference([inventory_hostname]) }}"
+      when: item not in ospf_ping.stdout[0]
+
+    - name: check
+      shell: echo "no neighbor from {{ inventory_hostname }} to {{ item }}" >> ./l2vpn.txt
+      loop: "{{ groups['L2VPN-cloud'] | difference([inventory_hostname]) }}"
+      when: item not in ospf_neighbors.stdout[0]
+
+

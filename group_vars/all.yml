@@ -1,0 +1,14 @@
+---
+
+cli:
+  host: "{{ inventory_hostname }}"
+  username: "admin"
+
+snmp_contact: "admin@domain.com"
+snmp_location: "Moscow"
+snmp_community: "public"
+snmp_permit: "RO"
+
+bfd_interval: 750 # use 750, because PortChannel interfaces can use only 750+
+bfd_min_rx: 750
+bfd_multiplier: 3
