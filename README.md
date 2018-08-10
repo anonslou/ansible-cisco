@@ -1,8 +1,8 @@
-## Ansible for cisco
+# Ansible for cisco
 
 Плейбуки для работы с оборудованием cisco в предоставляемом провайдером L2VPN облаке
 
-# Плейбуки
+## Плейбуки
 
 1. set_SNMP.yaml - настройки snmp для мониторинга
 2. set_BFD.yaml - установка BFD на интерфейсах (bfd all-interfaces в router ospf не выполняется)
