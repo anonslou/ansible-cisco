@@ -1,7 +1,7 @@
 ---
 
 - name: Invent all
-  hosts: all
+  hosts: medsi-all:13-DC-all:dc-asr
   gather_facts: false
   connection: local
   serial: 30
@@ -15,7 +15,6 @@
         provider: "{{ cli }}"
       register: ios_facts_result
 
-# uncomment if need save facts in files
 #    - name: Create all_facts dir
 #      file:
 #        path: ./all_facts/
@@ -27,13 +26,10 @@
 #        content: "{{ ios_facts_result | to_nice_json }}"
 #        dest: "all_facts/{{inventory_hostname}}_facts.json"
 
-      # if device is stack - get all serials
     - name: set all serials if exists
       set_fact:
         serial: "{{ ansible_net_stacked_serialnums | join(',') }}"
       when: ansible_net_stacked_serialnums is defined
-
-      # for single device - get one serial
     - name: set one serial
       set_fact:
         serial: "{{ ansible_net_serialnum }}"
@@ -50,8 +46,24 @@
       lineinfile:
         create: yes
         path: ./invent.csv
-        line: "{{ inventory_hostname }};\
+        # fisrt 5 column for https://cway.cisco.com/mydevices:
+        # Serial Number;Device Name / Hostname;Tags;Notes;Software Version
+        line: "{{ serial }};\
                {{ ansible_net_hostname }};\
-               {{ ansible_net_model }};\
-               {{ serial }};\
-               {{ location.stdout[0] }}"
+               ;\
+               {{ location.stdout[0] }};\
+               {{ ansible_net_version }};\
+               {{ inventory_hostname }};\
+               {{ ansible_net_model }}"
+
+- name: expand serials and remove last two column
+  connection: local
+  hosts: localhost
+
+  tasks:
+
+    - name: convert csv
+      shell: |
+        python3 convert.py > for_upload.csv
+      delegate_to: localhost
+
