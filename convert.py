@@ -4,7 +4,7 @@
 import re
 
 
-print('Serial Number;Device Name / Hostname;Tags;Notes;Software Version')
+print('Serial Number,Device Name / Hostname,Tags,Notes,Software Version')
 with open('invent.csv') as f:
     for line in f:
         serial, devicename, tags, location, software, ip, model = line[:-1].split(';')
